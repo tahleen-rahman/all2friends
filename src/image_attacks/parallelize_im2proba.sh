@@ -2,7 +2,7 @@
 for ((slice =0; slice <= $1; slice++))
 do
 echo "$slice"
-python main_placenet.py ${slice}&
+python im2proba.py ${slice} $2 &
 done
 wait
 exit 0

@@ -1,0 +1,7 @@
+numpy
+torchvision
+joblib
+torch
+scikit-learn
+scipy
+requests
