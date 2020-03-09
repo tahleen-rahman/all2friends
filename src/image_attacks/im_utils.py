@@ -521,6 +521,7 @@ def score(dataset, name, classifiers):
 
     print ("scoring ", dataset.columns)
 
+    result, names = [], []
     for cname, classifier in classifiers.items():
 
         print ("scoring all features with", cname)
@@ -536,5 +537,11 @@ def score(dataset, name, classifiers):
         for scorer in [ 'roc_auc']:#'accuracy',, 'average_precision'
 
             scores = cross_val_score(clf, X, Y, scoring=scorer, cv=rskf)
+
             print(scorer, " %0.4f (+/- %0.4f)" % (scores.mean(), scores.std() * 2))
+
+            result.append(scores.mean())
+            names.append(cname)
+
+    return result, names
 

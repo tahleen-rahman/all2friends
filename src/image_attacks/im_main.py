@@ -3,17 +3,19 @@ import subprocess
 
 from src.image_attacks.im_utils import slice_files, combine_files, clean_trim, count_cats, make_dataset_counts, score
 
-from src.shared_utils.shared_tools import make_allPairs, classifiers
+from src.shared_utils.shared_tools import make_allPairs, classifiers, DATAPATH, city
 
 
 
-def attack_images():
-    
-    city = 'la'  # 'ny', sys.argv[1]
-    cores = 120
-    prob_cutoff = 0.05
+def attack_images(cores, prob_cutoff):
+    """
 
-    DATAPATH = '../../data/' + city
+    :param cores: how many cores to use for multiprocessing
+    :param prob_cutoff: user's image belongs to a certain category if the output of the last FC layer of the resnet model for the category  > prob_cutoff
+    :return:
+    """
+
+
     mediaFile = "target_media"
 
     slice_files(mediaFile, DATAPATH, cores)
@@ -38,7 +40,7 @@ def attack_images():
 
 if __name__ == '__main__':
 
-    attack_images()
+    result, names = attack_images(cores = 120, prob_cutoff = 0.05)
 
 
 
