@@ -4,16 +4,18 @@ import os
 import random
 
 import pandas as pd
+import scipy
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.linear_model import LogisticRegression
 
-city = 'la'
+city = 'la' #'ny'
 DATAPATH = '../../data/' + city
 
 
 
 
-classifiers={   'RF':(RandomForestClassifier, {"n_estimators": 101, "max_depth": 10}),
+classifiers = {
+                'RF':(RandomForestClassifier, {"n_estimators": 101, "max_depth": 10}),
                 'GBM': (GradientBoostingClassifier,{'n_estimators':100, 'max_depth': 3}),
                 'AB':(AdaBoostClassifier, {"n_estimators": 101}),
                 'LR_SAG_L2penalty':(LogisticRegression, {'solver': 'sag'}),
@@ -39,7 +41,6 @@ def folder_setup(city):
     #os.mkdir('data/'+city+'/process/')
     if not os.path.exists('data/'+city+'/result/'):
         os.mkdir('data/'+city+'/result/')
-
 
 
 def isFriends(friends,a, b):

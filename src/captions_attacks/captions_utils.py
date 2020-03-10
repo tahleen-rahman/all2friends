@@ -96,12 +96,21 @@ def make_features(dataFile, df,  TFIDF_matrix,  pairs, DATAPATH):
 
     print ("pairs.shape", pairs.shape, pairs.columns)
 
-    if os.path.exists(DATAPATH+dataFile):
+    if os.path.exists(DATAPATH + dataFile):
         print ("datafile exists, removing", dataFile)
-        os.remove(DATAPATH+dataFile)
+        os.remove(DATAPATH + dataFile)
 
 
     count=0
+
+    with open(DATAPATH + dataFile, "wb") as f:
+        for item in ['u1', 'u2', 'label',\
+                    'cosine', 'euclidean', 'correlation', 'chebyshev', \
+                    'braycurtis', 'canberra', 'cityblock', 'sqeuclidean']:
+            f.write( ","+ item )
+        f.write("\n")
+
+
     for i in range(len(pairs)):
 
         if not (i % 500):
@@ -132,7 +141,7 @@ def make_features(dataFile, df,  TFIDF_matrix,  pairs, DATAPATH):
                                        cityblock(u1_vector, u2_vector), \
                                        sqeuclidean(u1_vector, u2_vector)]])
 
-            i_feature.to_csv(DATAPATH+dataFile, index=False,  header=None, mode='a')
+            i_feature.to_csv(DATAPATH + dataFile, index=False,  header=None, mode='a')
             # print "feature created"
 
         except Exception as e:

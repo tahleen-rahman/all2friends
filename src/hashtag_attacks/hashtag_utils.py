@@ -136,13 +136,17 @@ def make_features(DATAPATH, ht, ent_df, datafile, pairs):
                 dataset.loc[i, 'aa_h']          = pd.np.sum(pd.np.reciprocal(pd.np.log(countdf[countdf.ht_id.isin(overlap)].counts)))#sum of the reciprocals of the logarithm of nhi
                                                                                                                                      # which is the number of times a hashtag hi common between u and v was shared by all users.
         except:
+
             continue
+
 
     print ("count", count)
 
     print ("before dropna dataset[dataset.label==0].shape, dataset[dataset.label==1].shape", \
            dataset[dataset.label == 0].shape, dataset[dataset.label == 1].shape)
+
     dataset.dropna(inplace=True)
+
     print ("afer dropna dataset[dataset.label==0].shape, dataset[dataset.label==1].shape",   \
            dataset[dataset.label == 0].shape, dataset[dataset.label == 1].shape)
 

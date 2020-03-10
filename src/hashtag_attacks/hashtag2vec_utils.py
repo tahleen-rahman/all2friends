@@ -10,7 +10,7 @@ from scipy.spatial.distance import cosine, euclidean, correlation, chebyshev,\
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
 
-from src.shared_utils.shared_tools import pair_construct
+from src.shared_utils.utils import pair_construct
 
 
 def uh_graph_build(ht):
@@ -185,10 +185,10 @@ def feature_construct(DATAPATH, model_name, pairs, walk_len=100, walk_times=20, 
     Returns:
     '''
 
-    if os.path.exists(DATAPATH+'emb/'+ model_name + '_' +  \
-                              str(int(walk_len)) + '_' + str(int(walk_times)) + '_' + str(int(num_features)) + '.feature'):
-        os.remove(DATAPATH+'emb/'+ model_name + '_' + \
-                  str(int(walk_len)) + '_' + str(int(walk_times)) + '_' + str(int(num_features)) + '.feature')
+    data_file =  'emb/' + model_name + '_' + str(int(walk_len)) + '_' + str(int(walk_times)) + '_' + str(int(num_features)) + '.feature'
+
+    if os.path.exists(DATAPATH + data_file):
+        os.remove(DATAPATH + data_file)
 
     emb = pd.read_csv(DATAPATH+'emb/'+ model_name + '_' + \
                       str(int(walk_len)) + '_' + str(int(walk_times)) + '_' + str(int(num_features)) + '.emb', \
@@ -218,16 +218,14 @@ def feature_construct(DATAPATH, model_name, pairs, walk_len=100, walk_times=20, 
                                        cityblock(u1_vector, u2_vector), \
                                        sqeuclidean(u1_vector, u2_vector)]])
 
-            i_feature.to_csv(DATAPATH+'emb/'+ model_name + '_' +  \
-                             str(int(walk_len)) + '_' + str(int(walk_times)) + '_' + str(int(num_features)) + '.feature', \
-                             index=False, header=None, mode='a')
+            i_feature.to_csv(DATAPATH + data_file, index=False, header=None, mode='a')
+
         except ValueError:
             print (u1_vector.shape, u2_vector.shape)
             count+=1
     print  (count , " pairs not found out of ",  len(pair))
 
-
-
+    return data_file
 
 
 

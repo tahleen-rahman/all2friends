@@ -400,7 +400,7 @@ def makeEntropies(DATAPATH, proba):
     return ent_df
 
 
-def make_dataset_counts(DATAPATH, clean_file, dataFile, counts_file,  allPairs):
+def make_features_counts(DATAPATH, clean_file, dataFile, counts_file,  allPairs):
     """
     calculates our features for each user pair from the counts vector of each user ,   our features are
     the number of times each category is shared by both users in the pair + maximum index + max counts + entropy
