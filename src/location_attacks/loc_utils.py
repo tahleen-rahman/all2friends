@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.spatial import distance
 
 
-def make_features(city, DATAPATH, data_file="location.csv"):
+def make_features(city, DATAPATH, data_file):
 
     """
     calculate features i.e. pairwise distances between location embeddings per user for each user pair if embeddings exist

@@ -27,7 +27,7 @@ def attack_images(cores, prob_cutoff):
 
     clean_file = clean_trim(prob_cutoff, DATAPATH, prob_file)
 
-    counts_file = count_cats(DATAPATH, clean_file)
+    counts_file = count_cats(DATAPATH, clean_file, countsFile="proba_cut_01_counts.csv" )
 
     allPairs = make_allPairs("avg_pairs.csv", u_list_file=counts_file, DATAPATH=DATAPATH,
                              friendFile=city + ".target_friends", makeStrangers=True)

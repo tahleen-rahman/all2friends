@@ -12,7 +12,7 @@ import multiprocessing as mp
 from scipy.spatial import distance
 
 
-def social_random_walk_core(DATAPATH, start_u, sym_pairs, walk_len, walk_times):
+def social_random_walk_core(DATAPATH, start_u, sym_pairs, walk_len, walk_times,  i, fold):
 
     ''' random walks from start_u on social network
     Args:
@@ -21,7 +21,9 @@ def social_random_walk_core(DATAPATH, start_u, sym_pairs, walk_len, walk_times):
         sym_pairs: anonymized graph, symmetric
         walk_len: walk length
         walk_times: times start from each user
-    Returns:
+        i: iteration of cross val
+        fold: fold of cross val
+        Returns:
     '''
 
     np.random.seed()
@@ -29,7 +31,7 @@ def social_random_walk_core(DATAPATH, start_u, sym_pairs, walk_len, walk_times):
     temp_walk = np.zeros((1, walk_len))# initialize random walk
 
 
-    for i in range(walk_times):
+    for w in range(walk_times):
 
         temp_walk[:, 0] = start_u#
         curr_u = start_u
@@ -41,10 +43,10 @@ def social_random_walk_core(DATAPATH, start_u, sym_pairs, walk_len, walk_times):
             curr_u = next_u
             temp_walk[:, j+1] = next_u
 
-        pd.DataFrame(temp_walk).to_csv(DATAPATH+'friends.walk', header=None, mode='a', index=False)
+        pd.DataFrame(temp_walk).to_csv(DATAPATH + i + "_" + fold + 'friends.walk', header=None, mode='a', index=False)
 
 
-def para_friend_random_walk(DATAPATH, ulist,sym_pairs, walk_len, walk_times,core_num):
+def para_friend_random_walk(DATAPATH, ulist,sym_pairs, walk_len, walk_times,core_num,  i, fold):
 
     ''' parallel random walk on incomplete user friend network
     Args:
@@ -58,10 +60,10 @@ def para_friend_random_walk(DATAPATH, ulist,sym_pairs, walk_len, walk_times,core
     '''
 
     # do not use shared memory
-    Parallel(n_jobs = core_num)(delayed(social_random_walk_core)(DATAPATH, u, sym_pairs, walk_len, walk_times) for u in ulist)
+    Parallel(n_jobs = core_num)(delayed(social_random_walk_core)(DATAPATH, u, sym_pairs, walk_len, walk_times,  i, fold) for u in ulist)
 
 
-def makeWalk(sym_pairs, DATAPATH,   core_num):
+def makeWalk(sym_pairs, DATAPATH, core_num, i, fold=""):
     ''' makes weighted bipartite graphs and calls the parallel random walk
     Args:
         city: city
@@ -70,12 +72,12 @@ def makeWalk(sym_pairs, DATAPATH,   core_num):
     '''
 
     walk_len, walk_times = 100, 20  # maximal 100 walk_len, 20 walk_times
-    print ('walking, walk_len, walk_times, sym_pairs.shape, corenum', walk_len, walk_times, sym_pairs.shape, core_num)
-    para_friend_random_walk(DATAPATH, sym_pairs.u1.unique(), sym_pairs, walk_len, walk_times, core_num)
+    print ('walking, walk_len, walk_times, sym_pairs.shape, corenum,  i, fold', walk_len, walk_times, sym_pairs.shape, core_num, i, fold)
+    para_friend_random_walk(DATAPATH, sym_pairs.u1.unique(), sym_pairs, walk_len, walk_times, core_num,  i, fold)
 
 
 
-def emb_train(DATAPATH, walk_len=100, walk_times=20, num_features=128):
+def emb_train(DATAPATH, i, fold, walk_len=100, walk_times=20, num_features=128):
     ''' train vector model
     Args:
         city: city
@@ -86,7 +88,7 @@ def emb_train(DATAPATH, walk_len=100, walk_times=20, num_features=128):
     Returns:
     '''
 
-    walks = pd.read_csv(DATAPATH+'friends.walk', \
+    walks = pd.read_csv(DATAPATH + i + "_" + fold + 'friends.walk', \
                         header=None, error_bad_lines=False)
 
     walks = walks.loc[np.random.permutation(len(walks))]
@@ -108,11 +110,11 @@ def emb_train(DATAPATH, walk_len=100, walk_times=20, num_features=128):
                             window=context, sample=downsampling)
 
     print ('training done')
-    emb.wv.save_word2vec_format(DATAPATH+'friends.emb')
+    emb.wv.save_word2vec_format(DATAPATH + i + "_" + fold + 'friends.emb')
 
 
 
-def make_features_distances( DATAPATH):
+def make_features_distances(DATAPATH, i):
     """
     pairwise distances as features, not shown in the paper
     :param DATAPATH:
@@ -121,41 +123,44 @@ def make_features_distances( DATAPATH):
 
     pair = pd.read_csv(DATAPATH + "HCI.csv", usecols=[0, 1, 2])
 
+    for fold in range(0, 5):
 
-    if os.path.exists(DATAPATH+'friendship.csv'):
-        os.remove(DATAPATH+'friendship.csv')
+        fold = str(fold)
 
-    emb = pd.read_csv(DATAPATH+'friends.emb', header=None, skiprows=1, sep=' ')
-    emb = emb.rename(columns={0:'uid'})# last column is user id
-    emb = emb.loc[emb.uid>0]# only take users, no loc_type, not necessary
+        if os.path.exists(DATAPATH + i + "_" + fold + 'friendship.csv'):
+            os.remove(DATAPATH + i + "_" + fold +'friendship.csv')
+
+        emb = pd.read_csv(DATAPATH+ i + "_" + fold +'friends.emb', header=None, skiprows=1, sep=' ')
+        emb = emb.rename(columns={0:'uid'})# last column is user id
+        emb = emb.loc[emb.uid>0]# only take users, no loc_type, not necessary
 
 
-    for i in range(len(pair)):
+        for i in range(len(pair)):
 
-        u1 = pair.loc[i, 'u1']
-        u2 = pair.loc[i, 'u2']
+            u1 = pair.loc[i, 'u1']
+            u2 = pair.loc[i, 'u2']
 
-        label = pair.loc[i, 'label']
+            label = pair.loc[i, 'label']
 
-        u1_vector = emb.loc[emb.uid==u1, range(1, emb.shape[1])]
-        u2_vector = emb.loc[emb.uid==u2, range(1, emb.shape[1])]
-        print (u1.shape)
-        try:
-            i_feature = pd.DataFrame([[u1, u2, label, \
-                                    distance.cosine(u1_vector, u2_vector), \
-                                    distance.euclidean(u1_vector, u2_vector), \
-                                    distance.correlation(u1_vector, u2_vector), \
-                                    distance.chebyshev(u1_vector, u2_vector), \
-                                    distance.braycurtis(u1_vector, u2_vector), \
-                                    distance.canberra(u1_vector, u2_vector), \
-                                    distance.cityblock(u1_vector, u2_vector), \
-                                    distance.sqeuclidean(u1_vector, u2_vector)]])
+            u1_vector = emb.loc[emb.uid==u1, range(1, emb.shape[1])]
+            u2_vector = emb.loc[emb.uid==u2, range(1, emb.shape[1])]
+            print (u1.shape)
+            try:
+                i_feature = pd.DataFrame([[u1, u2, label, \
+                                        distance.cosine(u1_vector, u2_vector), \
+                                        distance.euclidean(u1_vector, u2_vector), \
+                                        distance.correlation(u1_vector, u2_vector), \
+                                        distance.chebyshev(u1_vector, u2_vector), \
+                                        distance.braycurtis(u1_vector, u2_vector), \
+                                        distance.canberra(u1_vector, u2_vector), \
+                                        distance.cityblock(u1_vector, u2_vector), \
+                                        distance.sqeuclidean(u1_vector, u2_vector)]])
 
-            i_feature.to_csv(DATAPATH+'friendship.csv',  index = False, header = None, mode = 'a')
-            #print "feature created"
+                i_feature.to_csv(DATAPATH + i + "_" + fold + 'friendship.csv',  index = False, header = None, mode = 'a')
+                #print "feature created"
 
-        except Exception as e :
-            print ("EXCEPTION!", u1_vector.shape, u2_vector.shape, u1, u2, e.message)
+            except Exception as e :
+                print ("EXCEPTION!", u1_vector.shape, u2_vector.shape, u1, u2, e.message)
 
     return 'friendship.csv'
 
@@ -165,7 +170,7 @@ def HADAMARD(u1, u2):
     return pd.np.multiply(u1, u2).values
 
 
-def make_features_hada(DATAPATH):
+def make_features_hada(DATAPATH, i):
     """
     calculates HADAMARD distance as features between the embedding pairs
 
@@ -175,68 +180,77 @@ def make_features_hada(DATAPATH):
 
     pair = pd.read_csv(DATAPATH + "HCI.csv", usecols=[0, 1, 2])
 
+    for fold in range(0, 5):
 
-    if os.path.exists(DATAPATH + 'friendship_hada.csv'):
-        os.remove(DATAPATH + 'friendship_hada.csv')
+        fold = str(fold)
 
-    emb = pd.read_csv(DATAPATH + 'friends.emb', header=None, skiprows=1, sep=' ')
-    emb = emb.rename(columns={0: 'uid'})  # last column is user id
-    emb = emb.loc[emb.uid > 0]
+        if os.path.exists(DATAPATH + i + "_" + fold + 'friendship_hada.csv'):
+            os.remove(DATAPATH + i + "_" + fold + 'friendship_hada.csv')
 
-    count=0
+        emb = pd.read_csv(DATAPATH + i + "_" + fold + 'friends.emb', header=None, skiprows=1, sep=' ')
+        emb = emb.rename(columns={0: 'uid'})  # last column is user id
+        emb = emb.loc[emb.uid > 0]
 
-    for i in range(len(pair)):
-        u1 = pair.loc[i, 'u1']
-        u2 = pair.loc[i, 'u2']
+        count=0
 
-        label = pair.loc[i, 'label']
+        for i in range(len(pair)):
+            u1 = pair.loc[i, 'u1']
+            u2 = pair.loc[i, 'u2']
 
-        u1_vector = emb.loc[emb.uid == u1, range(1, emb.shape[1])]
-        u2_vector = emb.loc[emb.uid == u2, range(1, emb.shape[1])]
+            label = pair.loc[i, 'label']
 
-        try:
-            val=HADAMARD(u1_vector, u2_vector)
+            u1_vector = emb.loc[emb.uid == u1, range(1, emb.shape[1])]
+            u2_vector = emb.loc[emb.uid == u2, range(1, emb.shape[1])]
 
-            i_feature = pd.DataFrame([[u1, u2, label]])
+            try:
+                val=HADAMARD(u1_vector, u2_vector)
 
-            for i in range(0, emb.shape[1]-1):
-                i_feature[i+3]=val[0][i]
+                i_feature = pd.DataFrame([[u1, u2, label]])
 
-            i_feature.to_csv(DATAPATH+'friendship_hada.csv',\
-                             index = False, header = None, mode = 'a')
+                for i in range(0, emb.shape[1]-1):
+                    i_feature[i+3]=val[0][i]
 
-        except Exception:
-            print (u1, u2)
-            count +=1
+                i_feature.to_csv(DATAPATH + i + "_" + fold + 'friendship_hada.csv',\
+                                 index = False, header = None, mode = 'a')
 
-    print (count)
+            except Exception:
+                print (u1, u2)
+                count +=1
+
+        print (count)
 
     return 'friendship_hada.csv'
 
 
 
-def friend2vec(DATAPATH, frn_train):
+
+def friend2vec(DATAPATH, frn_train_file, i):
     """
+    TODO
     create embeddings for the users in the pairs in HCI using word2vec on the incomplete network
     :param DATAPATH:
-    :param frn_train:
+    :param frn_train_file: prefix of the file for each cross val iteration subgraph of friends in the training set to use for node2vec
     :return:
     """
-    pairs = pd.read_csv(DATAPATH + "HCI.csv", usecols=[0, 1, 2])
 
-    # create symmetric pairs for random walk
-    frn_train2 = pd.DataFrame()
-    frn_train2['u1'] = frn_train.u2
-    frn_train2['u2'] = frn_train.u1
+    for fold in range(0,5):
 
-    sym_pairs = frn_train2.append(frn_train.loc[:, ['u1', 'u2']])
-    sym_pairs.to_csv(DATAPATH + 'sym_pairs.csv', index=False)
-    #sym_pairs = pd.read_csv(DATAPATH + 'sym_pairs.csv')
+        frn_train = pd.read_csv(DATAPATH +  i + "_" + str(fold) + frn_train_file) #, usecols=[0, 1, 2])
 
-    if not os.path.exists(DATAPATH + 'emb/'):
-        os.mkdir(DATAPATH + 'emb/')
+        # create symmetric pairs for random walk
+        frn_train2 = pd.DataFrame()
+        frn_train2['u1'] = frn_train.u2
+        frn_train2['u2'] = frn_train.u1
+        sym_pairs = frn_train2.append(frn_train.loc[:, ['u1', 'u2']])
 
-    makeWalk(sym_pairs, DATAPATH, core_num=mp.cpu_count()-1)
+        #sym_pairs.to_csv(DATAPATH + str(i) + 'sym_pairs.csv', index=False)
+        #sym_pairs = pd.read_csv(DATAPATH + str(i) +  'sym_pairs.csv')
 
-    emb_train(DATAPATH)
+        if not os.path.exists(DATAPATH + 'emb/'):
+            os.mkdir(DATAPATH + 'emb/')
 
+        core_num = mp.cpu_count() - 1
+
+        makeWalk(sym_pairs, DATAPATH,   core_num, i, str(fold))
+
+        emb_train(DATAPATH, i, str(fold))

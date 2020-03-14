@@ -341,7 +341,7 @@ def clean_trim(cutoff, DATAPATH, probFile):
 
 
 
-def count_cats(DATAPATH, cleanFile):
+def count_cats(DATAPATH, cleanFile, countsFile ):
     """
     counts the number of images in each category for a user
     :param DATAPATH:
@@ -349,16 +349,12 @@ def count_cats(DATAPATH, cleanFile):
     :return: count file
     """
 
-
-
     proba = pd.read_csv(DATAPATH + cleanFile, index_col=0)
 
     grouped = proba.groupby('uid')
     counts = grouped.apply(lambda col: (col != 0).sum())
 
-    countsFile = "proba_cut_01_counts.csv"
-
-    counts.to_csv(DATAPATH+ countsFile)#, index=False)
+    counts.to_csv(DATAPATH + countsFile)#, index=False)
     #counts = pd.read_csv(DATAPATH + countsFile, index_col=0)
 
     print(counts.columns)

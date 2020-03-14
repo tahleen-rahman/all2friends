@@ -12,7 +12,7 @@ def attack_locations():
     """
 
 
-    data_file = make_features(city, DATAPATH)
+    data_file = make_features(city, DATAPATH, data_file="loc_dataset.csv")
 
     print ("Created location dataset at", data_file)
 
