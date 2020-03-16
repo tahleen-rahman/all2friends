@@ -1,7 +1,6 @@
 # Created by rahman at 17:01 2020-03-10 using PyCharm
 import os
-
-
+import sys
 
 import numpy as np
 import pandas as pd
@@ -43,7 +42,7 @@ def social_random_walk_core(DATAPATH, start_u, sym_pairs, walk_len, walk_times, 
             curr_u = next_u
             temp_walk[:, j+1] = next_u
 
-        pd.DataFrame(temp_walk).to_csv(DATAPATH + i + "_" + fold + 'friends.walk', header=None, mode='a', index=False)
+        pd.DataFrame(temp_walk).to_csv(DATAPATH + "emb/" + i + "_" + fold + 'friends.walk', header=None, mode='a', index=False)
 
 
 def para_friend_random_walk(DATAPATH, ulist,sym_pairs, walk_len, walk_times,core_num,  i, fold):
@@ -110,7 +109,7 @@ def emb_train(DATAPATH, i, fold, walk_len=100, walk_times=20, num_features=128):
                             window=context, sample=downsampling)
 
     print ('training done')
-    emb.wv.save_word2vec_format(DATAPATH + i + "_" + fold + 'friends.emb')
+    emb.wv.save_word2vec_format(DATAPATH  + "emb/"  + i + "_" + fold + 'friends.emb')
 
 
 
@@ -130,7 +129,7 @@ def make_features_distances(DATAPATH, i):
         if os.path.exists(DATAPATH + i + "_" + fold + 'friendship.csv'):
             os.remove(DATAPATH + i + "_" + fold +'friendship.csv')
 
-        emb = pd.read_csv(DATAPATH+ i + "_" + fold +'friends.emb', header=None, skiprows=1, sep=' ')
+        emb = pd.read_csv(DATAPATH + "emb/" + i + "_" + fold +'friends.emb', header=None, skiprows=1, sep=' ')
         emb = emb.rename(columns={0:'uid'})# last column is user id
         emb = emb.loc[emb.uid>0]# only take users, no loc_type, not necessary
 
@@ -187,34 +186,37 @@ def make_features_hada(DATAPATH, i):
         if os.path.exists(DATAPATH + i + "_" + fold + 'friendship_hada.csv'):
             os.remove(DATAPATH + i + "_" + fold + 'friendship_hada.csv')
 
-        emb = pd.read_csv(DATAPATH + i + "_" + fold + 'friends.emb', header=None, skiprows=1, sep=' ')
+        emb = pd.read_csv(DATAPATH  + "emb/" + i + "_" + fold + 'friends.emb', header=None, skiprows=1, sep=' ')
         emb = emb.rename(columns={0: 'uid'})  # last column is user id
         emb = emb.loc[emb.uid > 0]
 
         count=0
 
-        for i in range(len(pair)):
-            u1 = pair.loc[i, 'u1']
-            u2 = pair.loc[i, 'u2']
+        for row in range(len(pair)):
 
-            label = pair.loc[i, 'label']
+            u1 = pair.loc[row, 'u1']
+            u2 = pair.loc[row, 'u2']
+
+            label = pair.loc[row, 'label']
 
             u1_vector = emb.loc[emb.uid == u1, range(1, emb.shape[1])]
             u2_vector = emb.loc[emb.uid == u2, range(1, emb.shape[1])]
 
             try:
-                val=HADAMARD(u1_vector, u2_vector)
+                val = HADAMARD(u1_vector, u2_vector)
 
                 i_feature = pd.DataFrame([[u1, u2, label]])
 
-                for i in range(0, emb.shape[1]-1):
-                    i_feature[i+3]=val[0][i]
+                for col in range(0, emb.shape[1]-1):
+                    i_feature[col+3] = val[0][col]
 
                 i_feature.to_csv(DATAPATH + i + "_" + fold + 'friendship_hada.csv',\
                                  index = False, header = None, mode = 'a')
 
-            except Exception:
-                print (u1, u2)
+            except Exception as e:
+                print (sys.exc_info()[0])
+                print (e)
+                #print (u1, u2)
                 count +=1
 
         print (count)
@@ -251,6 +253,6 @@ def friend2vec(DATAPATH, frn_train_file, i):
 
         core_num = mp.cpu_count() - 1
 
-        makeWalk(sym_pairs, DATAPATH,   core_num, i, str(fold))
+        makeWalk(sym_pairs, DATAPATH, core_num, i, str(fold))
 
         emb_train(DATAPATH, i, str(fold))

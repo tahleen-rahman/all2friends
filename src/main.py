@@ -12,7 +12,7 @@ from shared_tools.utils import  DATAPATH, city
 
 
 
-i, monomodal = str(1), False #sys.argv[1], sys.argv[2]
+i, monomodal = "1", 0 #sys.argv[1], int(sys.argv[2])
 
 
 
@@ -41,9 +41,9 @@ else:
 
 # get the file suffixes for each cross val iteration subgraph of friends in the training set
 # to use for node2vec for the network attack as well as for the multimodal attack later
-friends_train_file = split_train_test_cv(DATAPATH, i)
+#friends_train_file = split_train_test_cv(DATAPATH, i)
 
-network_file = attack_network(friends_train_file, i)
+network_file = attack_network('_train_pairs.csv', i)
 
 write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, i)
 
