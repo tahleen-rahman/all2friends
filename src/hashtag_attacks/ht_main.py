@@ -1,8 +1,8 @@
 # Created by rahman at 12:23 2020-03-09 using PyCharm
-from src.hashtag_attacks.hashtag2vec_utils import uh_graph_build, make_walk, emb_train, feature_construct, \
+from hashtag_attacks.hashtag2vec_utils import uh_graph_build, make_walk, emb_train, feature_construct, \
     predict_all_aucs
-from src.hashtag_attacks.hashtag_utils import filter_hashtags_users, make_features, score
-from src.shared_tools.utils import classifiers, DATAPATH, city, pair_construct
+from hashtag_attacks.hashtag_utils import filter_hashtags_users, make_features, score
+from shared_tools.utils import classifiers, DATAPATH, city, pair_construct
 
 
 

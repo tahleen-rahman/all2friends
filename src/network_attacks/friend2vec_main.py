@@ -1,7 +1,7 @@
 # Created by rahman at 16:50 2020-03-10 using PyCharm
-from src.multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI, split_train_test
-from src.network_attacks.friend2vec_utils import friend2vec, make_features_distances, make_features_hada
-from src.shared_tools.utils import classifiers, DATAPATH, city
+from multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI, split_train_test
+from network_attacks.friend2vec_utils import friend2vec, make_features_distances, make_features_hada
+from shared_tools.utils import classifiers, DATAPATH, city
 
 
 def attack_network(frn_train, i=""):

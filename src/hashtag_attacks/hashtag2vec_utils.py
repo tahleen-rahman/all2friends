@@ -10,7 +10,7 @@ from scipy.spatial.distance import cosine, euclidean, correlation, chebyshev,\
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
 
-from src.shared_utils.utils import pair_construct
+from shared_tools.utils import pair_construct
 
 
 def uh_graph_build(ht):

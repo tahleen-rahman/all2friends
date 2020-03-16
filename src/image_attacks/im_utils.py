@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from scipy.stats import entropy
 from sklearn.metrics import roc_auc_score
 
-from src.image_attacks.run_placesCNN_unified import load_model, returnTF
+from image_attacks.run_placesCNN_unified import load_model, returnTF
 
 
 def slice_files(mediaFile, DATAPATH, cores):

@@ -1,9 +1,9 @@
 # Created by rahman at 15:20 2020-03-05 using PyCharm
 import subprocess
 
-from src.image_attacks.im_utils import slice_files, combine_files, clean_trim, count_cats, make_features_counts, score
+from image_attacks.im_utils import slice_files, combine_files, clean_trim, count_cats, make_features_counts, score
 
-from src.shared_tools.utils import make_allPairs, classifiers, DATAPATH, city
+from shared_tools.utils import make_allPairs, classifiers, DATAPATH, city
 
 
 

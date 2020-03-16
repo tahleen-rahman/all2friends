@@ -1,8 +1,8 @@
 # Created by rahman at 11:58 2020-03-10 using PyCharm
-from src.location_attacks.loc_utils import make_features
+from location_attacks.loc_utils import make_features
 
-from src.shared_tools.utils import classifiers, DATAPATH, city
-from src.multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI
+from shared_tools.utils import classifiers, DATAPATH, city
+from multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI
 
 
 def attack_locations():

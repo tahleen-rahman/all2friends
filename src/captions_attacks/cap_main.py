@@ -1,9 +1,7 @@
 # Created by rahman at 15:30 2020-03-09 using PyCharm
 
-from src.shared_utils.utils import make_allPairs, classifiers, city, DATAPATH
-from src.captions_attacks.captions_utils import  make_features, score_all_aucs,  make_dfwords, get_TFIDF_filtered
-import scipy.sparse
-
+from shared_tools.utils import make_allPairs, classifiers, city, DATAPATH
+from captions_attacks.captions_utils import  make_features, score_all_aucs,  make_dfwords, get_TFIDF_filtered
 
 
 def attack_captions(th, sublinear):

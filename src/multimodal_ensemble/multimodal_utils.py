@@ -50,7 +50,7 @@ def split_train_test_cv(DATAPATH, i=""):
     else:
         print("pairs HCI.csv not found, Creating it using makeHCI")
         from src.multimodal_ensemble.multimodal_utils import makeHCI
-        makeHCI(DATAPATH)
+        makeHCI(DATAPATH,  'HCI.csv')
 
 
     for fold in range(0,5):

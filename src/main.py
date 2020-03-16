@@ -1,18 +1,18 @@
 # Created by rahman at 17:20 2020-03-10 using PyCharm
 import sys
 
-from src.captions_attacks.cap_main import attack_captions
-from src.hashtag_attacks.ht_main import attack_hashtags
-from src.image_attacks.im_main import attack_images
-from src.location_attacks.loc_main import attack_locations
-from src.multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI, write_posteriors, \
+from image_attacks.im_main import attack_images
+from captions_attacks.cap_main import attack_captions
+from hashtag_attacks.ht_main import attack_hashtags
+from location_attacks.loc_main import attack_locations
+from multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI, write_posteriors, \
     unite_posteriors, score_avg5probs, score_subsets_weighted, split_train_test_cv, split_train_test
-from src.network_attacks.friend2vec_main import attack_network
-from src.shared_tools.utils import  DATAPATH, city
+from network_attacks.friend2vec_main import attack_network
+from shared_tools.utils import  DATAPATH, city
 
 
 
-i, monomodal = sys.argv[1], sys.argv[2]
+i, monomodal = str(1), False #sys.argv[1], sys.argv[2]
 
 
 
@@ -36,7 +36,7 @@ if monomodal: # if not multimodal only
 
 else:
 
-    cap_file, ht_file, im_file = "extra_cap_dataset.csv", "extra_ht_dataset.csv", "extra_im_dataset.csv", "loc_dataset.csv"
+    cap_file, ht_file, im_file, loc_file = "extra_cap_dataset.csv", "extra_ht_dataset.csv", "extra_im_dataset.csv", "loc_dataset.csv"
 
 
 # get the file suffixes for each cross val iteration subgraph of friends in the training set

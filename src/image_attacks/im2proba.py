@@ -1,7 +1,8 @@
-import sys, pandas as pd
+import sys
+import pandas as pd
 
 from src.image_attacks.im_utils import getProbsSequential, getProbsParallel,  restart_ProbsSequential
-from src.shared_utils.utils import folder_setup
+from src.shared_tools.utils import folder_setup
 
 slice, city  = sys.argv[1], sys.argv[2]
 
