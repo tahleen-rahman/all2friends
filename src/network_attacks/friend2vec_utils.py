@@ -87,7 +87,7 @@ def emb_train(DATAPATH, i, fold, walk_len=100, walk_times=20, num_features=128):
     Returns:
     '''
 
-    walks = pd.read_csv(DATAPATH + i + "_" + fold + 'friends.walk', \
+    walks = pd.read_csv(DATAPATH  + "emb/" + i + "_" + fold + 'friends.walk', \
                         header=None, error_bad_lines=False)
 
     walks = walks.loc[np.random.permutation(len(walks))]
