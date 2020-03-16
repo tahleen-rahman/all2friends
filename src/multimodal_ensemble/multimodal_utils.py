@@ -50,8 +50,11 @@ def split_train_test_cv(DATAPATH, i=""):
     else:
         print("pairs HCI.csv not found, Creating it using makeHCI")
         from src.multimodal_ensemble.multimodal_utils import makeHCI
-        makeHCI(DATAPATH,  'HCI.csv')
+        pairs, cap_dataset, ht_dataset, im_dataset = makeHCI(DATAPATH,  'HCI.csv')
 
+
+    # shuffle before slicing for cross val so that each repetition of cross val will have different samples
+    pairs = pairs.sample(frac=1).reset_index(drop=True)
 
     for fold in range(0,5):
 

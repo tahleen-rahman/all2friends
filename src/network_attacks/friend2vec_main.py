@@ -11,7 +11,7 @@ def attack_network(frn_train, i=""):
     """
     # get the incomplete subgraph for Random walk to get embeddings
 
-    #friend2vec(DATAPATH, frn_train, i)  # remember to delete old .walk file
+    friend2vec(DATAPATH, frn_train, i)  # remember to delete old .walk file
 
     data_file = make_features_hada(DATAPATH, i)
 
