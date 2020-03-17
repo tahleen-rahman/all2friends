@@ -65,7 +65,7 @@ def split_train_test_cv(DATAPATH, i=""):
         stra_train = stra.drop(stra_test.index)
 
         frns_test = frns[fold* int(0.2 * len(frns)): (fold+ 1) * int(0.2 * len(frns))]
-        frns_train = stra.drop(stra_test.index)
+        frns_train = frns.drop(stra_test.index)
 
         train_pairs = frns_train.append(stra_train)
         test_pairs = frns_test.append(stra_test)

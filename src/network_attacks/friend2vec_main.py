@@ -15,9 +15,9 @@ def attack_network(frn_train, i=""):
 
     data_file = make_features_hada(DATAPATH, i)
 
-    data_file_dist = make_features_distances(DATAPATH, i)
+    #data_file_dist = make_features_distances(DATAPATH, i)
 
-    print ("Created network datasets at", data_file, data_file_dist)
+    #print ("Created network datasets at", data_file, data_file_dist)
 
     return data_file
 
