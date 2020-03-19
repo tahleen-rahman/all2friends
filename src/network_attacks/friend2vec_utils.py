@@ -188,9 +188,8 @@ def make_features_hada(DATAPATH, i):
 
         emb = pd.read_csv(DATAPATH  + "emb/" + i + "_" + fold + 'friends.emb', header=None, skiprows=1, sep=' ')
         emb = emb.rename(columns={0: 'uid'})  # last column is user id
-        emb = emb.loc[emb.uid > 0]
 
-        count=0
+        count = 0
 
         for row in range(len(pair)):
 

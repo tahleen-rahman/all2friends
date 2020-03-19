@@ -65,7 +65,7 @@ def split_train_test_cv(DATAPATH, i=""):
         stra_train = stra.drop(stra_test.index)
 
         frns_test = frns[fold* int(0.2 * len(frns)): (fold+ 1) * int(0.2 * len(frns))]
-        frns_train = frns.drop(stra_test.index)
+        frns_train = frns.drop(frns_test.index)
 
         train_pairs = frns_train.append(stra_train)
         test_pairs = frns_test.append(stra_test)
@@ -298,7 +298,7 @@ def recalculate_missingHCI(DATAPATH, HCI, cap_dataset, ht_dataset, im_dataset):
     return 'extra_cap_dataset.csv', 'extra_ht_dataset.csv', 'extra_im_dataset.csv'
 
 
-def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, i=""):
+def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, i="", verbose=0):
     """
     train 5 classifiers for each of the 5 modalities using all train set pairs  
     and write the posterior probabilities for the test pairs
@@ -311,7 +311,11 @@ def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPAT
     :param DATAPATH: 
     :return: 
     """
-     # cross validation fold only affect the network adversary to evaluate the multimodal attack
+
+
+    print("run, fold, modality, AUC, #class0, #class1")
+
+    # cross validation fold only affect the network adversary to evaluate the multimodal attack
     for fold in range(0, 5):
 
         fold = str(fold)
@@ -320,11 +324,13 @@ def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPAT
 
         im_dataset = pd.read_csv(DATAPATH + im_file)
 
-        #im_dataset.drop('maxcat', inplace=True, axis=1)
+        im_dataset.drop('maxcat', inplace=True, axis=1) # this part is from legacy
 
         cap_dataset = pd.read_csv(DATAPATH + cap_file)
 
-        loc_dataset = pd.read_csv(DATAPATH + loc_file)
+        loc_dataset = pd.read_csv(DATAPATH + loc_file, names=['u1', 'u2', 'label', \
+                                                                'cosine', 'euclidean', 'correlation', 'chebyshev', \
+                                                                'braycurtis', 'canberra', 'cityblock', 'sqeuclidean']) # this part is from legacy
 
         cols = ['u1', 'u2', 'label']
         cols.extend(range(1, 129))
@@ -348,11 +354,11 @@ def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPAT
             for col in test_set.columns:
                 test_set[col] = pd.to_numeric(test_set[col])
 
-
-            print("train_set.shape, test_set.shape", train_set.shape, test_set.shape)
-            print(" dataset[dataset.label==0].shape,  dataset[dataset.label==1].shape", dataset[dataset.label==0].shape,  dataset[dataset.label==1].shape)
-            print("train_set[train_set.label==0].shape, train_set[train_set.label==1].shape", train_set[train_set.label==0].shape, train_set[train_set.label==1].shape)
-            print("test_set[test_set.label == 0].shape, test_set[test_set.label == 1].shape", test_set[test_set.label == 0].shape, test_set[test_set.label == 1].shape)
+            if verbose:
+                print("train_set.shape, test_set.shape", train_set.shape, test_set.shape)
+                print(" dataset[dataset.label==0].shape,  dataset[dataset.label==1].shape", dataset[dataset.label==0].shape,  dataset[dataset.label==1].shape)
+                print("train_set[train_set.label==0].shape, train_set[train_set.label==1].shape", train_set[train_set.label==0].shape, train_set[train_set.label==1].shape)
+                print("test_set[test_set.label == 0].shape, test_set[test_set.label == 1].shape", test_set[test_set.label == 0].shape, test_set[test_set.label == 1].shape)
 
             X_train, y_train = train_set.iloc[:, 3:].values, train_set.iloc[:, 2].values
             X_test, y_test = test_set.iloc[:, 3:].values, test_set.iloc[:, 2].values
@@ -361,16 +367,15 @@ def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPAT
 
             pred_proba = clf.predict_proba(X_test)
 
-            pred_proba_train = clf.predict_proba(X_train)
-            print("roc_auc_score(y_train, pred_proba_train[:, 1])", roc_auc_score(y_train, pred_proba_train[:, 1]))
-
-            print("roc_auc_score(y_test, pred_proba[:,1])", roc_auc_score(y_test, pred_proba[:, 1]))
+            print(i, fold, count, roc_auc_score(y_test, pred_proba[:, 1]), dataset[dataset.label==0].shape[0],  dataset[dataset.label==1].shape[0])
 
             test_set['predproba_1'] = pred_proba[:, 1]
 
             test_set.to_csv(DATAPATH + i + "_" + fold + "_" + str(count) + 'test_set.csv')  # 5793
 
             count += 1
+
+    print("Modalities 0: cap_dataset, 1: im_dataset, 2: ht_dataset, 3: loc_dataset, 4: friendship_dataset")
 
 
 def unite_posteriors(DATAPATH, i=""):
@@ -391,39 +396,39 @@ def unite_posteriors(DATAPATH, i=""):
 
         cap_count, ht_count, loc_count, im_count, frn_count = 0, 0, 0, 0, 0
 
-        test_pairs = pd.read_csv(DATAPATH + 'test_pairs.csv', index_col=0)
+        test_pairs = pd.read_csv(DATAPATH + i + "_" + fold + '_test_pairs.csv', index_col=0)
 
-        for i in test_pairs.index:
+        for ind in test_pairs.index:
             #print(i
-            u1, u2 = test_pairs.loc[i, 'u1'], test_pairs.loc[i, 'u2']
+            u1, u2 = test_pairs.loc[ind, 'u1'], test_pairs.loc[ind, 'u2']
 
             cap_row = cap_testset[(cap_testset.u1 == u1) & (cap_testset.u2 == u2)].dropna()
             if cap_row.shape[0] ==1 :
-                test_pairs.loc[i, 'cap_prob_1'] = cap_row.predproba_1.values
+                test_pairs.loc[ind, 'cap_prob_1'] = cap_row.predproba_1.values
             else:
                 cap_count += 1
 
             ht_row = ht_testset[(ht_testset.u1 == u1) & (ht_testset.u2 == u2)].dropna()
             if ht_row.shape[0] == 1:
-                test_pairs.loc[i, 'ht_prob_1'] = ht_row.predproba_1.values
+                test_pairs.loc[ind, 'ht_prob_1'] = ht_row.predproba_1.values
             else:
                 ht_count += 1
 
             loc_row = loc_testset[(loc_testset.u1 == u1) & (loc_testset.u2 == u2)].dropna()
             if loc_row.shape[0] == 1:
-                test_pairs.loc[i, 'loc_prob_1'] = loc_row.predproba_1.values
+                test_pairs.loc[ind, 'loc_prob_1'] = loc_row.predproba_1.values
             else:
                 loc_count += 1
 
             im_row = im_testset[(im_testset.u1 == u1) & (im_testset.u2 == u2)].dropna()
             if im_row.shape[0] == 1:
-                test_pairs.loc[i, 'im_prob_1'] = im_row.predproba_1.values
+                test_pairs.loc[ind, 'im_prob_1'] = im_row.predproba_1.values
             else:
                 im_count += 1
 
             frn_row = frn_testset[(frn_testset.u1 == u1) & (frn_testset.u2 == u2)].dropna()
             if frn_row.shape[0] == 1:
-                test_pairs.loc[i, 'frn_prob_1'] = frn_row.predproba_1.values
+                test_pairs.loc[ind, 'frn_prob_1'] = frn_row.predproba_1.values
             else:
                 frn_count += 1
 
@@ -456,7 +461,7 @@ def score_avg5probs(DATAPATH, i=""):
         test_pairs.drop(drop_ind, inplace=True)
         print(test_pairs.shape)
 
-        print(roc_auc_score(test_pairs.label, test_pairs.avg_prob_1))
+        print( "simple avg", roc_auc_score(test_pairs.label, test_pairs.avg_prob_1))
         test_pairs.to_csv(DATAPATH + i + "_" + fold + "_" + 'avg_probs_1.csv', index=False)
     
     
@@ -471,6 +476,7 @@ def score_subsets_weighted(DATAPATH, i=""):
     :param DATAPATH: 
     :return: 
     """
+    out_arr = []
 
     for fold in range(0,5):
 
@@ -488,6 +494,9 @@ def score_subsets_weighted(DATAPATH, i=""):
         loc_roc = roc_auc_score(loc_testset.label, loc_testset.predproba_1)
         frn_roc = roc_auc_score(frn_testset.label, frn_testset.predproba_1)
 
+        arr = [i, fold, cap_roc, im_roc, ht_roc, loc_roc, frn_roc]
+
+
         weighted_test_pairs = pd.read_csv(DATAPATH + i + "_" + fold + "_" + 'all_probs_1.csv', index_col=0)
 
         weighted_test_pairs['cap_prob_1'] = weighted_test_pairs.cap_prob_1 * cap_roc
@@ -501,138 +510,186 @@ def score_subsets_weighted(DATAPATH, i=""):
 
         print(test_pairs.shape)
         test_pairs['wt_avg_prob_1'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'loc_prob_1', 'frn_prob_1', 'im_prob_1']].mean(axis=1)
-        drop_ind = test_pairs[test_pairs.avg_prob_1.isna()].index
+        drop_ind = test_pairs[test_pairs.wt_avg_prob_1.isna()].index
         test_pairs.drop(drop_ind, inplace=True)
         print(test_pairs.shape)
 
         print("5-modal attack auc of wt_avg_prob_1" , round(roc_auc_score(test_pairs.label, test_pairs.wt_avg_prob_1), 3))
+        arr.append(round(roc_auc_score(test_pairs.label, test_pairs.wt_avg_prob_1), 3))
 
         test_pairs['hlic'] = test_pairs[['im_prob_1', 'ht_prob_1', 'loc_prob_1', 'cap_prob_1']].mean(axis=1)
-        test_pairs_hlic= test_pairs[['u1', 'u2', 'label', 'hlic']].dropna()
+        test_pairs_hlic = test_pairs[['u1', 'u2', 'label', 'hlic']].dropna()
         print("roc_auc_score(test_pairs_hlic.label, test_pairs_hlic.hlic), test_pairs_hlic.shape", \
             round(roc_auc_score(test_pairs_hlic.label, test_pairs_hlic.hlic), 3), test_pairs_hlic.shape)
+        arr.append(round(roc_auc_score(test_pairs_hlic.label, test_pairs_hlic.hlic), 3))
 
         test_pairs['hlie'] = test_pairs[['im_prob_1', 'ht_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
-        test_pairs_hlie= test_pairs[['u1', 'u2', 'label', 'hlie']].dropna()
+        test_pairs_hlie = test_pairs[['u1', 'u2', 'label', 'hlie']].dropna()
         print("roc_auc_score(test_pairs_hlie.label, test_pairs_hlie.hlie), test_pairs_hlie.shape", \
             round(roc_auc_score(test_pairs_hlie.label, test_pairs_hlie.hlie), 3), test_pairs_hlie.shape)
+        arr.append(round(roc_auc_score(test_pairs_hlie.label, test_pairs_hlie.hlie), 3))
 
         test_pairs['chle'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_chle = test_pairs[['u1', 'u2', 'label', 'chle']].dropna()
         print("roc_auc_score(test_pairs_chle.label, test_pairs_chle.chle), test_pairs_chle.shape", \
             round(roc_auc_score(test_pairs_chle.label, test_pairs_chle.chle), 3), test_pairs_chle.shape)
+        arr.append(round(roc_auc_score(test_pairs_chle.label, test_pairs_chle.chle), 3))
 
         test_pairs['clie'] = test_pairs[['cap_prob_1', 'loc_prob_1', 'im_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_clie = test_pairs[['u1', 'u2', 'label', 'clie']].dropna()
         print("roc_auc_score(test_pairs_clie.label, test_pairs_clie.clie), test_pairs_clie.shape", \
             round(roc_auc_score(test_pairs_clie.label, test_pairs_clie.clie),3 ), test_pairs_clie.shape)
-
-        test_pairs['cle'] = test_pairs[['cap_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
-        test_pairs_cle = test_pairs[['u1', 'u2', 'label', 'cle']].dropna()
-        print("roc_auc_score(test_pairs_cle.label, test_pairs_cle.cle), test_pairs_cle.shape", \
-            round(roc_auc_score(test_pairs_cle.label, test_pairs_cle.cle), 3), test_pairs_cle.shape)
-
-        test_pairs['ile'] = test_pairs[['im_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
-        test_pairs_ile = test_pairs[['u1', 'u2', 'label', 'ile']].dropna()
-        print("roc_auc_score(test_pairs_ile.label, test_pairs_ile.ile), test_pairs_ile.shape", \
-            round(roc_auc_score(test_pairs_ile.label, test_pairs_ile.ile),3 ), test_pairs_ile.shape)
+        arr.append(round(roc_auc_score(test_pairs_clie.label, test_pairs_clie.clie),3 ))
 
         test_pairs['chie'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'im_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_chie = test_pairs[['u1', 'u2', 'label', 'chie']].dropna()
         print("roc_auc_score(test_pairs_chie.label, test_pairs_chie.chie), test_pairs_chie.shape", \
             round(roc_auc_score(test_pairs_chie.label, test_pairs_chie.chie),3 ), test_pairs_chie.shape)
+        arr.append(round(roc_auc_score(test_pairs_chie.label, test_pairs_chie.chie),3 ))
+
+
+
+
+        test_pairs['cle'] = test_pairs[['cap_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
+        test_pairs_cle = test_pairs[['u1', 'u2', 'label', 'cle']].dropna()
+        print("roc_auc_score(test_pairs_cle.label, test_pairs_cle.cle), test_pairs_cle.shape", \
+            round(roc_auc_score(test_pairs_cle.label, test_pairs_cle.cle), 3), test_pairs_cle.shape)
+        arr.append(round(roc_auc_score(test_pairs_cle.label, test_pairs_cle.cle), 3))
+
+        test_pairs['ile'] = test_pairs[['im_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
+        test_pairs_ile = test_pairs[['u1', 'u2', 'label', 'ile']].dropna()
+        print("roc_auc_score(test_pairs_ile.label, test_pairs_ile.ile), test_pairs_ile.shape", \
+            round(roc_auc_score(test_pairs_ile.label, test_pairs_ile.ile),3 ), test_pairs_ile.shape)
+        arr.append(round(roc_auc_score(test_pairs_ile.label, test_pairs_ile.ile),3 ))
 
         test_pairs['cie'] = test_pairs[['cap_prob_1', 'im_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_cie = test_pairs[['u1', 'u2', 'label', 'cie']].dropna()
         print("roc_auc_score(test_pairs_cie.label, test_pairs_cie.cie), test_pairs_cie.shape", \
             round(roc_auc_score(test_pairs_cie.label, test_pairs_cie.cie),3 ), test_pairs_cie.shape)
+        arr.append(round(roc_auc_score(test_pairs_cie.label, test_pairs_cie.cie),3 ))
 
         test_pairs['hle'] = test_pairs[['ht_prob_1', 'loc_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_hle = test_pairs[['u1', 'u2', 'label', 'hle']].dropna()
         print("roc_auc_score(test_pairs_hle.label, test_pairs_hle.hle), test_pairs_hle.shape", \
             round(roc_auc_score(test_pairs_hle.label, test_pairs_hle.hle),3 ), test_pairs_hle.shape)
+        arr.append(round(roc_auc_score(test_pairs_hle.label, test_pairs_hle.hle),3 ))
 
         test_pairs['hie'] = test_pairs[['ht_prob_1', 'im_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_hie = test_pairs[['u1', 'u2', 'label', 'hie']].dropna()
         print("roc_auc_score(test_pairs_hie.label, test_pairs_hie.hie), test_pairs_hie.shape", \
             round(roc_auc_score(test_pairs_hie.label, test_pairs_hie.hie),3 ), test_pairs_hie.shape)
+        arr.append(round(roc_auc_score(test_pairs_hie.label, test_pairs_hie.hie),3 ))
 
         test_pairs['che'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'frn_prob_1']].mean(axis=1)
         test_pairs_che = test_pairs[['u1', 'u2', 'label', 'che']].dropna()
         print("roc_auc_score(test_pairs_che.label, test_pairs_che.che), test_pairs_che.shape", \
             round(roc_auc_score(test_pairs_che.label, test_pairs_che.che),3 ), test_pairs_che.shape)
-
-        test_pairs['eh'] = test_pairs[[ 'ht_prob_1', 'frn_prob_1']].mean(axis=1)
-        test_pairs_eh = test_pairs[['u1', 'u2', 'label', 'eh']].dropna()
-        print("roc_auc_score(test_pairs_eh.label, test_pairs_eh.eh), test_pairs_eh.shape", \
-            round(roc_auc_score(test_pairs_eh.label, test_pairs_eh.eh),3 ), test_pairs_eh.shape)
-
-        test_pairs['ce'] = test_pairs[['cap_prob_1',  'frn_prob_1']].mean(axis=1)
-        test_pairs_ce = test_pairs[['u1', 'u2', 'label', 'ce']].dropna()
-        print("roc_auc_score(test_pairs_ce.label, test_pairs_ce.ce), test_pairs_ce.shape", \
-            round(roc_auc_score(test_pairs_ce.label, test_pairs_ce.ce),3 ), test_pairs_ce.shape)
-
-        test_pairs['le'] = test_pairs[['loc_prob_1', 'frn_prob_1']].mean(axis=1)
-        test_pairs_le = test_pairs[['u1', 'u2', 'label', 'le']].dropna()
-        print("roc_auc_score(test_pairs_le.label, test_pairs_le.le), test_pairs_le.shape", \
-            round(roc_auc_score(test_pairs_le.label, test_pairs_le.le),3 ), test_pairs_le.shape)
-
-        test_pairs['ie'] = test_pairs[['im_prob_1', 'frn_prob_1']].mean(axis=1)
-        test_pairs_ie = test_pairs[['u1', 'u2', 'label', 'ie']].dropna()
-        print("roc_auc_score(test_pairs_ie.label, test_pairs_ie.ie), test_pairs_ie.shape", \
-            round(roc_auc_score(test_pairs_ie.label, test_pairs_ie.ie),3 ), test_pairs_ie.shape)
-
+        arr.append(round(roc_auc_score(test_pairs_che.label, test_pairs_che.che),3 ))
 
         test_pairs['hli'] = test_pairs[['im_prob_1', 'ht_prob_1', 'loc_prob_1']].mean(axis=1)
         test_pairs_hli = test_pairs[['u1', 'u2', 'label', 'hli']].dropna()
         print("roc_auc_score(test_pairs_hli.label, test_pairs_hli.hli), test_pairs_hli.shape", \
             roc_auc_score(test_pairs_hli.label, test_pairs_hli.hli), test_pairs_hli.shape)
+        arr.append(roc_auc_score(test_pairs_hli.label, test_pairs_hli.hli))
 
         test_pairs['chl'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'loc_prob_1']].mean(axis=1)
         test_pairs_chl = test_pairs[['u1', 'u2', 'label', 'chl']].dropna()
         print("roc_auc_score(test_pairs_chl.label, test_pairs_chl.chl), test_pairs_chl.shape", \
             roc_auc_score(test_pairs_chl.label, test_pairs_chl.chl), test_pairs_chl.shape)
+        arr.append(roc_auc_score(test_pairs_chl.label, test_pairs_chl.chl))
 
         test_pairs['cli'] = test_pairs[['cap_prob_1', 'loc_prob_1', 'im_prob_1']].mean(axis=1)
         test_pairs_cli = test_pairs[['u1', 'u2', 'label', 'cli']].dropna()
         print("roc_auc_score(test_pairs_cli.label, test_pairs_cli.cli), test_pairs_cli.shape", \
             roc_auc_score(test_pairs_cli.label, test_pairs_cli.cli), test_pairs_cli.shape)
-
-        test_pairs['cl'] = test_pairs[['cap_prob_1', 'loc_prob_1']].mean(axis=1)
-        test_pairs_cl = test_pairs[['u1', 'u2', 'label', 'cl']].dropna()
-        print("roc_auc_score(test_pairs_cl.label, test_pairs_cl.cl), test_pairs_cl.shape", \
-            roc_auc_score(test_pairs_cl.label, test_pairs_cl.cl), test_pairs_cl.shape)
-
-        test_pairs['il'] = test_pairs[['im_prob_1', 'loc_prob_1']].mean(axis=1)
-        test_pairs_il = test_pairs[['u1', 'u2', 'label', 'il']].dropna()
-        print("roc_auc_score(test_pairs_il.label, test_pairs_il.il), test_pairs_il.shape", \
-            roc_auc_score(test_pairs_il.label, test_pairs_il.il), test_pairs_il.shape)
+        arr.append(roc_auc_score(test_pairs_cli.label, test_pairs_cli.cli))
 
         test_pairs['chi'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'im_prob_1']].mean(axis=1)
         test_pairs_chi = test_pairs[['u1', 'u2', 'label', 'chi']].dropna()
         print("roc_auc_score(test_pairs_chi.label, test_pairs_chi.chi), test_pairs_chi.shape", \
             roc_auc_score(test_pairs_chi.label, test_pairs_chi.chi), test_pairs_chi.shape)
+        arr.append(roc_auc_score(test_pairs_chi.label, test_pairs_chi.chi))
+
+
+        test_pairs['eh'] = test_pairs[['ht_prob_1', 'frn_prob_1']].mean(axis=1)
+        test_pairs_eh = test_pairs[['u1', 'u2', 'label', 'eh']].dropna()
+        print("roc_auc_score(test_pairs_eh.label, test_pairs_eh.eh), test_pairs_eh.shape", \
+              round(roc_auc_score(test_pairs_eh.label, test_pairs_eh.eh), 3), test_pairs_eh.shape)
+        arr.append(round(roc_auc_score(test_pairs_eh.label, test_pairs_eh.eh), 3))
+
+        test_pairs['ce'] = test_pairs[['cap_prob_1', 'frn_prob_1']].mean(axis=1)
+        test_pairs_ce = test_pairs[['u1', 'u2', 'label', 'ce']].dropna()
+        print("roc_auc_score(test_pairs_ce.label, test_pairs_ce.ce), test_pairs_ce.shape", \
+              round(roc_auc_score(test_pairs_ce.label, test_pairs_ce.ce), 3), test_pairs_ce.shape)
+        arr.append(round(roc_auc_score(test_pairs_ce.label, test_pairs_ce.ce), 3))
+
+        test_pairs['el'] = test_pairs[['loc_prob_1', 'frn_prob_1']].mean(axis=1)
+        test_pairs_el = test_pairs[['u1', 'u2', 'label', 'el']].dropna()
+        print(roc_auc_score(test_pairs_el.label, test_pairs_el.el), test_pairs_el.shape)
+        arr.append(round(roc_auc_score(test_pairs_el.label, test_pairs_el.el.values), 3))
+
+        test_pairs['ie'] = test_pairs[['im_prob_1', 'frn_prob_1']].mean(axis=1)
+        test_pairs_ie = test_pairs[['u1', 'u2', 'label', 'ie']].dropna()
+        print("roc_auc_score(test_pairs_ie.label, test_pairs_ie.ie), test_pairs_ie.shape", \
+              round(roc_auc_score(test_pairs_ie.label, test_pairs_ie.ie), 3), test_pairs_ie.shape)
+        arr.append(round(roc_auc_score(test_pairs_ie.label, test_pairs_ie.ie), 3))
+
+        test_pairs['cl'] = test_pairs[['cap_prob_1', 'loc_prob_1']].mean(axis=1)
+        test_pairs_cl = test_pairs[['u1', 'u2', 'label', 'cl']].dropna()
+        print("roc_auc_score(test_pairs_cl.label, test_pairs_cl.cl), test_pairs_cl.shape", \
+            roc_auc_score(test_pairs_cl.label, test_pairs_cl.cl), test_pairs_cl.shape)
+        arr.append(roc_auc_score(test_pairs_cl.label, test_pairs_cl.cl))
+
+        test_pairs['il'] = test_pairs[['im_prob_1', 'loc_prob_1']].mean(axis=1)
+        test_pairs_il = test_pairs[['u1', 'u2', 'label', 'il']].dropna()
+        print("roc_auc_score(test_pairs_il.label, test_pairs_il.il), test_pairs_il.shape", \
+            roc_auc_score(test_pairs_il.label, test_pairs_il.il), test_pairs_il.shape)
+        arr.append(roc_auc_score(test_pairs_il.label, test_pairs_il.il))
 
         test_pairs['ci'] = test_pairs[['cap_prob_1', 'im_prob_1']].mean(axis=1)
         test_pairs_ci = test_pairs[['u1', 'u2', 'label', 'ci']].dropna()
         print("roc_auc_score(test_pairs_ci.label, test_pairs_ci.ci), test_pairs_ci.shape", \
             roc_auc_score(test_pairs_ci.label, test_pairs_ci.ci), test_pairs_ci.shape)
+        arr.append(roc_auc_score(test_pairs_ci.label, test_pairs_ci.ci))
 
         test_pairs['hl'] = test_pairs[['ht_prob_1', 'loc_prob_1']].mean(axis=1)
         test_pairs_hl = test_pairs[['u1', 'u2', 'label', 'hl']].dropna()
         print("roc_auc_score(test_pairs_hl.label, test_pairs_hl.hl), test_pairs_hl.shape", \
             roc_auc_score(test_pairs_hl.label, test_pairs_hl.hl), test_pairs_hl.shape)
+        arr.append(roc_auc_score(test_pairs_hl.label, test_pairs_hl.hl))
 
         test_pairs['hi'] = test_pairs[['ht_prob_1', 'im_prob_1']].mean(axis=1)
         test_pairs_hi = test_pairs[['u1', 'u2', 'label', 'hi']].dropna()
         print("roc_auc_score(test_pairs_hi.label, test_pairs_hi.hi), test_pairs_hi.shape", \
             roc_auc_score(test_pairs_hi.label, test_pairs_hi.hi), test_pairs_hi.shape)
+        arr.append(roc_auc_score(test_pairs_hi.label, test_pairs_hi.hi))
 
         test_pairs['ch'] = test_pairs[['cap_prob_1', 'ht_prob_1']].mean(axis=1)
         test_pairs_ch = test_pairs[['u1', 'u2', 'label', 'ch']].dropna()
         print("roc_auc_score(test_pairs_ch.label, test_pairs_ch.ch), test_pairs_ch.shape", \
             roc_auc_score(test_pairs_ch.label, test_pairs_ch.ch), test_pairs_ch.shape)
+        arr.append(roc_auc_score(test_pairs_ch.label, test_pairs_ch.ch))
+
 
         test_pairs.to_csv(DATAPATH + i + "_" + fold + "_" + 'weighted_avg_probs.csv', index=False)
 
         print (DATAPATH + i + "_" + fold + "_" + "weighted_avg_probs.csv Written")
+
+        out_arr.append(arr)
+
+    return out_arr
+
+
+
+def make_results(outer_arr, DATAPATH):
+
+    results = pd.DataFrame(data = outer_arr, columns=['run', 'fold','cap_roc', 'im_roc', 'ht_roc', 'loc_roc', 'frn_roc', 'hlice',\
+                                                  'hlic', 'hlie', 'chle', 'clie', 'chie', \
+                                                  'cle', 'ile', 'cie', 'hle', 'hie', 'che', 'hli', 'chl', 'cli', 'chi',\
+                                                  'eh', 'ce', 'el', 'ie', 'cl', 'il', 'ci', 'hl', 'hi', 'ch'])
+
+
+    results.to_csv(DATAPATH + "results/results.csv")
+
+    print (results.groupby('run').agg({'hlice': ['mean', 'std', 'max'] }))
+    print (results.groupby('fold').agg({'hlice': ['mean', 'std', 'max'] }))

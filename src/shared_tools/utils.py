@@ -176,3 +176,4 @@ def pair_construct(u_list, friendFile, downSample):
     return pair
 
 
+
