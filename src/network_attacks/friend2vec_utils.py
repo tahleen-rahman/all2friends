@@ -165,11 +165,52 @@ def make_features_distances(DATAPATH, i):
 
 
 
+
+
+def friend2vec(DATAPATH, frn_train_file, i):
+    """
+    TODO
+    create embeddings for the users in the pairs in HCI using word2vec on the incomplete network
+    :param DATAPATH:
+    :param frn_train_file: prefix of the file for each cross val iteration subgraph of friends in the training set to use for node2vec
+    :return:
+    """
+
+    for fold in range(0,5):
+
+        frn_train = pd.read_csv(DATAPATH +  i + "_" + str(fold) + frn_train_file) #, usecols=[0, 1, 2])
+
+        # create symmetric pairs for random walk
+        frn_train2 = pd.DataFrame()
+        frn_train2['u1'] = frn_train.u2
+        frn_train2['u2'] = frn_train.u1
+        sym_pairs = frn_train2.append(frn_train.loc[:, ['u1', 'u2']])
+
+        #sym_pairs.to_csv(DATAPATH + str(i) + 'sym_pairs.csv', index=False)
+        #sym_pairs = pd.read_csv(DATAPATH + str(i) +  'sym_pairs.csv')
+
+        if not os.path.exists(DATAPATH + 'emb/'):
+            os.mkdir(DATAPATH + 'emb/')
+
+        core_num = mp.cpu_count() - 1
+
+        makeWalk(sym_pairs, DATAPATH, core_num, i, str(fold))
+
+        emb_train(DATAPATH, i, str(fold))
+
+
+
+
+
+
 def HADAMARD(u1, u2):
     return pd.np.multiply(u1, u2).values
 
 
-def make_features_hada(DATAPATH, i):
+
+
+
+def make_features_hada(DATAPATH, i=""):
     """
     calculates HADAMARD distance as features between the embedding pairs
 
@@ -221,37 +262,3 @@ def make_features_hada(DATAPATH, i):
         print (count)
 
     return 'friendship_hada.csv'
-
-
-
-
-def friend2vec(DATAPATH, frn_train_file, i):
-    """
-    TODO
-    create embeddings for the users in the pairs in HCI using word2vec on the incomplete network
-    :param DATAPATH:
-    :param frn_train_file: prefix of the file for each cross val iteration subgraph of friends in the training set to use for node2vec
-    :return:
-    """
-
-    for fold in range(0,5):
-
-        frn_train = pd.read_csv(DATAPATH +  i + "_" + str(fold) + frn_train_file) #, usecols=[0, 1, 2])
-
-        # create symmetric pairs for random walk
-        frn_train2 = pd.DataFrame()
-        frn_train2['u1'] = frn_train.u2
-        frn_train2['u2'] = frn_train.u1
-        sym_pairs = frn_train2.append(frn_train.loc[:, ['u1', 'u2']])
-
-        #sym_pairs.to_csv(DATAPATH + str(i) + 'sym_pairs.csv', index=False)
-        #sym_pairs = pd.read_csv(DATAPATH + str(i) +  'sym_pairs.csv')
-
-        if not os.path.exists(DATAPATH + 'emb/'):
-            os.mkdir(DATAPATH + 'emb/')
-
-        core_num = mp.cpu_count() - 1
-
-        makeWalk(sym_pairs, DATAPATH, core_num, i, str(fold))
-
-        emb_train(DATAPATH, i, str(fold))

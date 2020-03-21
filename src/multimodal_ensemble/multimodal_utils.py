@@ -298,6 +298,72 @@ def recalculate_missingHCI(DATAPATH, HCI, cap_dataset, ht_dataset, im_dataset):
     return 'extra_cap_dataset.csv', 'extra_ht_dataset.csv', 'extra_im_dataset.csv'
 
 
+
+def write_posteriors2(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, i="", verbose=0):
+    """
+    train 5 classifiers for each of the 5 modalities using all train set pairs
+    and write the posterior probabilities for the test pairs
+    :param i: iteration of cross val is repeating cross val
+    :param cap_file:
+    :param ht_file:
+    :param im_file:
+    :param loc_file:
+    :param network_file:
+    :param DATAPATH:
+    :return:
+    """
+
+
+    print("run, modality, AUC, #class0, #class1")
+
+
+    cols = ['u1', 'u2', 'label']
+    cols.extend(range(1, 129))
+    friendship_dataset = pd.read_csv(DATAPATH + i + network_file, names = cols)
+
+
+    train_pairs = pd.read_csv(DATAPATH + i + '_train_pairs.csv', index_col=0)
+    test_pairs = pd.read_csv( DATAPATH + i + '_test_pairs.csv', index_col=0)
+
+    count = 0
+
+    for dataset in [ friendship_dataset]:#cap_dataset, im_dataset, ht_dataset, loc_dataset,
+
+        clf = RandomForestClassifier(n_estimators=100, random_state=0)
+
+        train_set = dataset.merge(train_pairs).dropna()
+        test_set = dataset.merge(test_pairs).dropna()
+
+        for col in train_set.columns:
+            train_set[col] = pd.to_numeric(train_set[col])
+
+        for col in test_set.columns:
+            test_set[col] = pd.to_numeric(test_set[col])
+
+        if verbose:
+            print("train_set.shape, test_set.shape", train_set.shape, test_set.shape)
+            print(" dataset[dataset.label==0].shape,  dataset[dataset.label==1].shape", dataset[dataset.label==0].shape,  dataset[dataset.label==1].shape)
+            print("train_set[train_set.label==0].shape, train_set[train_set.label==1].shape", train_set[train_set.label==0].shape, train_set[train_set.label==1].shape)
+            print("test_set[test_set.label == 0].shape, test_set[test_set.label == 1].shape", test_set[test_set.label == 0].shape, test_set[test_set.label == 1].shape)
+
+        X_train, y_train = train_set.iloc[:, 3:].values, train_set.iloc[:, 2].values
+        X_test, y_test = test_set.iloc[:, 3:].values, test_set.iloc[:, 2].values
+
+        classifier = clf.fit(X_train, y_train)
+
+        pred_proba = clf.predict_proba(X_test)
+
+        print(i, count, roc_auc_score(y_test, pred_proba[:, 1]), dataset[dataset.label==0].shape[0],  dataset[dataset.label==1].shape[0])
+
+        test_set['predproba_1'] = pred_proba[:, 1]
+
+        test_set.to_csv(DATAPATH + i  + str(count) + 'test_set.csv')  # 5793
+
+        count += 1
+
+    print("Modalities 0: cap_dataset, 1: im_dataset, 2: ht_dataset, 3: loc_dataset, 4: friendship_dataset")
+
+
 def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, i="", verbose=0):
     """
     train 5 classifiers for each of the 5 modalities using all train set pairs  
@@ -368,6 +434,7 @@ def write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPAT
             pred_proba = clf.predict_proba(X_test)
 
             print(i, fold, count, roc_auc_score(y_test, pred_proba[:, 1]), dataset[dataset.label==0].shape[0],  dataset[dataset.label==1].shape[0])
+            print (clf.feature_importances_)
 
             test_set['predproba_1'] = pred_proba[:, 1]
 
