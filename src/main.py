@@ -1,7 +1,6 @@
 # Created by rahman at 17:20 2020-03-10 using PyCharm
 import sys
 
-[]
 from image_attacks.im_main import attack_images
 from captions_attacks.cap_main import attack_captions
 from hashtag_attacks.ht_main import attack_hashtags
@@ -40,24 +39,24 @@ else:
 
 
 
-####   get the file suffixes for each cross val iteration subgraph of friends in the training set
-####     to use for node2vec for the network attack as well as for the multimodal attack later
-out_arr = []
+    ####   get the file suffixes for each cross val iteration subgraph of friends in the training set
+    ####     to use for node2vec for the network attack as well as for the multimodal attack later
+    out_arr = []
 
-for i in range(1,6):
+    for i in range(1,6):
 
-    friends_train_file = split_train_test_cv(DATAPATH, str(i))
-        
-    network_file = attack_network(friends_train_file, str(i))
-    
-    write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, str(i))
-    
-    unite_posteriors(DATAPATH, str(i))
+        friends_train_file = split_train_test_cv(DATAPATH, str(i))
 
-    score_avg5probs(DATAPATH, str(i))
+        network_file = attack_network(friends_train_file, str(i))
 
-    arr = score_subsets_weighted(DATAPATH, str(i))
+        write_posteriors(cap_file, ht_file, im_file, loc_file, network_file, DATAPATH, str(i))
 
-    out_arr.extend(arr)
+        unite_posteriors(DATAPATH, str(i))
 
-results = make_results(out_arr, DATAPATH)
+        score_avg5probs(DATAPATH, str(i))
+
+        arr = score_subsets_weighted(DATAPATH, str(i))
+
+        out_arr.extend(arr)
+
+    results = make_results(out_arr, DATAPATH)

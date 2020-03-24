@@ -322,8 +322,8 @@ def write_posteriors2(cap_file, ht_file, im_file, loc_file, network_file, DATAPA
     friendship_dataset = pd.read_csv(DATAPATH + i + network_file, names = cols)
 
 
-    train_pairs = pd.read_csv(DATAPATH + i + '_train_pairs.csv', index_col=0)
-    test_pairs = pd.read_csv( DATAPATH + i + '_test_pairs.csv', index_col=0)
+    train_pairs = pd.read_csv(DATAPATH + i + 'train_pairs.csv', index_col=0)
+    test_pairs = pd.read_csv( DATAPATH + i + 'test_pairs.csv', index_col=0)
 
     count = 0
 
