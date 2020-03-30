@@ -6,7 +6,8 @@ from captions_attacks.cap_main import attack_captions
 from hashtag_attacks.ht_main import attack_hashtags
 from location_attacks.loc_main import attack_locations
 from multimodal_ensemble.multimodal_utils import makeHCI, recalculate_missingHCI, write_posteriors, \
-    unite_posteriors, score_avg5probs, score_subsets_weighted, split_train_test_cv, split_train_test, make_results
+    unite_posteriors, score_avg5probs, score_subsets_weighted, split_train_test_cv, split_train_test, \
+    make_results, precision_recall, avg_std_results
 from network_attacks.friend2vec_main import attack_network
 from shared_tools.utils import  DATAPATH, city
 
@@ -45,7 +46,7 @@ else:
 
     for i in range(1,6):
 
-        friends_train_file = split_train_test_cv(DATAPATH, str(i))
+        """friends_train_file = split_train_test_cv(DATAPATH, str(i))
 
         network_file = attack_network(friends_train_file, str(i))
 
@@ -53,10 +54,16 @@ else:
 
         unite_posteriors(DATAPATH, str(i))
 
-        score_avg5probs(DATAPATH, str(i))
+        #score_avg5probs(DATAPATH, str(i))"""
 
         arr = score_subsets_weighted(DATAPATH, str(i))
 
         out_arr.extend(arr)
 
     results = make_results(out_arr, DATAPATH)
+
+    precision_recall(DATAPATH)
+
+    avg_std_results(DATAPATH)
+
+

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import scipy
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, precision_score, recall_score
 
 
 def split_train_test(DATAPATH):
@@ -451,6 +451,7 @@ def unite_posteriors(DATAPATH, i=""):
     :param DATAPATH: 
     :return: 
     """
+
     for fold in range(0,5):
 
         fold = str(fold)
@@ -564,16 +565,18 @@ def score_subsets_weighted(DATAPATH, i=""):
         arr = [i, fold, cap_roc, im_roc, ht_roc, loc_roc, frn_roc]
 
 
-        weighted_test_pairs = pd.read_csv(DATAPATH + i + "_" + fold + "_" + 'all_probs_1.csv', index_col=0)
+        test_pairs = pd.read_csv(DATAPATH + i + "_" + fold + "_" + 'all_probs_1.csv', index_col=0)
 
-        weighted_test_pairs['cap_prob_1'] = weighted_test_pairs.cap_prob_1 * cap_roc
-        weighted_test_pairs['im_prob_1'] = weighted_test_pairs.im_prob_1 * im_roc
-        weighted_test_pairs['ht_prob_1'] = weighted_test_pairs.ht_prob_1 * ht_roc
-        weighted_test_pairs['loc_prob_1'] = weighted_test_pairs.loc_prob_1 * loc_roc
-        weighted_test_pairs['frn_prob_1'] = weighted_test_pairs.frn_prob_1 * frn_roc
+        test_pairs['avg_prob_1'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'loc_prob_1', 'frn_prob_1', 'im_prob_1']].mean(axis=1)
+
+        test_pairs['cap_prob_1'] = test_pairs.cap_prob_1 * cap_roc
+        test_pairs['im_prob_1'] = test_pairs.im_prob_1 * im_roc
+        test_pairs['ht_prob_1'] = test_pairs.ht_prob_1 * ht_roc
+        test_pairs['loc_prob_1'] = test_pairs.loc_prob_1 * loc_roc
+        test_pairs['frn_prob_1'] = test_pairs.frn_prob_1 * frn_roc
+
         print(cap_roc, im_roc, ht_roc, loc_roc, frn_roc)
 
-        test_pairs = weighted_test_pairs
 
         print(test_pairs.shape)
         test_pairs['wt_avg_prob_1'] = test_pairs[['cap_prob_1', 'ht_prob_1', 'loc_prob_1', 'frn_prob_1', 'im_prob_1']].mean(axis=1)
@@ -583,6 +586,11 @@ def score_subsets_weighted(DATAPATH, i=""):
 
         print("5-modal attack auc of wt_avg_prob_1" , round(roc_auc_score(test_pairs.label, test_pairs.wt_avg_prob_1), 3))
         arr.append(round(roc_auc_score(test_pairs.label, test_pairs.wt_avg_prob_1), 3))
+
+        print ("bl auc", roc_auc_score(test_pairs.label, test_pairs.avg_prob_1))
+        # add the baseline AUC
+        arr.append(round(roc_auc_score(test_pairs.label, test_pairs.avg_prob_1), 3))
+
 
         test_pairs['hlic'] = test_pairs[['im_prob_1', 'ht_prob_1', 'loc_prob_1', 'cap_prob_1']].mean(axis=1)
         test_pairs_hlic = test_pairs[['u1', 'u2', 'label', 'hlic']].dropna()
@@ -750,7 +758,7 @@ def score_subsets_weighted(DATAPATH, i=""):
 
 def make_results(outer_arr, DATAPATH):
 
-    results = pd.DataFrame(data = outer_arr, columns=['run', 'fold','cap_roc', 'im_roc', 'ht_roc', 'loc_roc', 'frn_roc', 'hlice',\
+    results = pd.DataFrame(data = outer_arr, columns=['run', 'fold','cap_roc', 'im_roc', 'ht_roc', 'loc_roc', 'frn_roc', 'hlice', 'hlice_bl',\
                                                   'hlic', 'hlie', 'chle', 'clie', 'chie', \
                                                   'cle', 'ile', 'cie', 'hle', 'hie', 'che', 'hli', 'chl', 'cli', 'chi',\
                                                   'eh', 'ce', 'el', 'ie', 'cl', 'il', 'ci', 'hl', 'hi', 'ch'])
@@ -760,3 +768,72 @@ def make_results(outer_arr, DATAPATH):
 
     print (results.groupby('run').agg({'hlice': ['mean', 'std', 'max'] }))
     print (results.groupby('fold').agg({'hlice': ['mean', 'std', 'max'] }))
+
+
+
+
+
+
+def get_precision_recall(DATAPATH, i, fold):
+    """
+    Let $p$ denote the percentage of true friends in a training set.
+    We label the top $p\%$ pairs ranked by their scores $ s^{\HolA}_{\pair}$, as positive (predict as friends).
+    :param DATAPATH:
+    :param i:
+    :param fold:
+    :return:
+    """
+
+    df = pd.read_csv(DATAPATH + i + "_" + fold + "_" + "weighted_avg_probs.csv")
+
+    hliec = df[['u1', 'u2', 'label', 'cap_prob_1', 'loc_prob_1', 'im_prob_1', 'frn_prob_1', 'ht_prob_1', 'wt_avg_prob_1']]
+    hliec = hliec.sort_values(by='wt_avg_prob_1')
+    hliec = hliec.sort_values(by='wt_avg_prob_1', ascending=False)
+    hliec.reset_index(drop=True)
+
+    train_ = pd.read_csv(DATAPATH + i + "_" + fold + "_" + "train_pairs.csv", index_col=0)
+    # percentage of true friends in a training set
+    class1_frac = train_[train_.label == 1].shape[0] / train_.shape[0]
+    th = hliec.iloc[int(class1_frac * len(hliec)), :].wt_avg_prob_1
+
+    hliec['pred'] = hliec.wt_avg_prob_1.apply(lambda x: x > th)
+
+    p = precision_score(hliec.label, hliec.pred)
+
+    r = recall_score(hliec.label, hliec.pred)
+
+    return p, r
+
+
+
+
+def precision_recall(DATAPATH):
+    """
+    calculate precision and recall
+    :param DATAPATH:
+    :return:
+    """
+
+    results = pd.read_csv(DATAPATH + "results/results.csv", index_col=0,  dtype={'run': object, 'fold': object})
+
+    results['precision'], results['recall'] = zip(*results.apply(lambda x: get_precision_recall(DATAPATH, x['run'], x['fold']), axis=1))
+
+    results.to_csv(DATAPATH + "results/results_pr.csv")
+
+
+def avg_std_results(DATAPATH):
+    """
+    print the maen and std of AUCS and precision and recall, rounded to 3 decimal places
+    :param DATAPATH:
+    :return:
+    """
+
+    results = pd.read_csv(DATAPATH + "results/results_pr.csv", index_col=0)
+
+    df = pd.DataFrame()
+    df['means'] = results.iloc[:, 2:].mean()
+    df['std'] = results.iloc[:, 2:].std()
+
+    print (round(df,3))
+
+

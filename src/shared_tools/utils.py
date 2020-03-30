@@ -8,7 +8,7 @@ import scipy
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.linear_model import LogisticRegression
 
-city = 'la' #'ny'
+city = 'ny' #'ny'
 DATAPATH = '../data/' + city + "/"
 
 
